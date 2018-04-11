@@ -13,6 +13,8 @@
 #include "rootston/desktop.h"
 #include "rootston/xcursor.h"
 
+#include <wlr/types/wlr_input_method.h>
+
 struct roots_cursor *roots_cursor_create(struct roots_seat *seat) {
 	struct roots_cursor *cursor = calloc(1, sizeof(struct roots_cursor));
 	if (!cursor) {

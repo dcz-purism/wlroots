@@ -43,7 +43,7 @@ struct roots_seat *input_get_seat(struct roots_input *input, char *name) {
 	return seat;
 }
 
-static void handle_new_input(struct wl_listener *listener, void *data) {
+void handle_new_input(struct wl_listener *listener, void *data) {
 	struct wlr_input_device *device = data;
 	struct roots_input *input = wl_container_of(listener, input, new_input);
 
