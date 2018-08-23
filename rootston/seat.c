@@ -16,6 +16,7 @@
 #include "rootston/input.h"
 #include "rootston/keyboard.h"
 #include "rootston/seat.h"
+#include "rootston/text_input.h"
 #include "rootston/xcursor.h"
 
 
@@ -575,13 +576,14 @@ struct roots_seat *roots_seat_create(struct roots_input *input, char *name) {
 		return NULL;
 	}
 
+	roots_input_method_relay_init(seat, &seat->im_relay);
+
 	wl_list_insert(&input->seats, &seat->link);
 
 	seat->new_drag_icon.notify = roots_seat_handle_new_drag_icon;
 	wl_signal_add(&seat->seat->events.new_drag_icon, &seat->new_drag_icon);
 	seat->destroy.notify = roots_seat_handle_destroy;
 	wl_signal_add(&seat->seat->events.destroy, &seat->destroy);
-
 	return seat;
 }
 
@@ -1185,6 +1187,28 @@ void roots_seat_set_focus(struct roots_seat *seat, struct roots_view *view) {
 	} else {
 		wlr_seat_keyboard_notify_enter(seat->seat, view->wlr_surface,
 			NULL, 0, NULL);
+	}
+
+	// TODO: is the iteration necessary?
+	struct roots_text_input *text_input;
+	wl_list_for_each(text_input, &seat->im_relay.text_inputs, link) {
+		if (!text_input->sent_enter) {
+			if (view
+				&& wl_resource_get_client(text_input->input->resource)
+					== wl_resource_get_client(view->wlr_surface->resource)) {
+				wlr_text_input_v3_send_enter(text_input->input, view->wlr_surface);
+				text_input->sent_enter = true;
+			}
+		} else {
+			if (text_input->input->focused_surface != view->wlr_surface) {
+				// surface may suddenly disappear
+				if (text_input->input->focused_surface) {
+					wlr_text_input_v3_send_leave(text_input->input,
+						text_input->input->focused_surface);
+				}
+				text_input->sent_enter = false;
+			}
+		}
 	}
 }
 
